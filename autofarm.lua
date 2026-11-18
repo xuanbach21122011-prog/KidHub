@@ -1,96 +1,79 @@
 -- =========================================================================
--- MODULE: AUTO FARM & COMBAT LOGIC
+-- MODULE: AUTOFARM & FAST ATTACK (FIX LỖI BAY LÊN TRỜI)
 -- =========================================================================
 local AutoFarmModule = {}
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
 getgenv().FarmConfig = {
     Enabled = false,
-    BringMob = true,
     FastAttack = true,
-    AutoHaki = true,
-    SafeHeight = 28,
-    SafeDistance = 8
+    Distance = 3 -- Khoảng cách đứng so với quái
 }
 
--- 1. Logic tự động bật Haki
-task.spawn(function()
-    while task.wait(1) do
-        pcall(function()
-            if getgenv().FarmConfig.Enabled and getgenv().FarmConfig.AutoHaki and LocalPlayer.Character then
-                local baf = LocalPlayer.Character:FindFirstChild("HasBuso")
-                if not baf then
-                    local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
-                    if remotes and remotes:FindFirstChild("CommF_") then
-                        remotes.CommF_:InvokeServer("Buso")
+-- Hàm tìm quái gần nhất
+local function getNearestMob()
+    local nearest = nil
+    local shortestDistance = math.huge
+    local enemies = Workspace:FindFirstChild("Enemies")
+    
+    if enemies then
+        local rootPart = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if rootPart then
+            for _, mob in ipairs(enemies:GetChildren()) do
+                local mobRoot = mob:FindFirstChild("HumanoidRootPart")
+                local mobHum = mob:FindFirstChildOfClass("Humanoid")
+                if mobRoot and mobHum and mobHum.Health > 0 then
+                    local dist = (rootPart.Position - mobRoot.Position).Magnitude
+                    if dist < shortestDistance then
+                        shortestDistance = dist
+                        nearest = mob
                     end
                 end
             end
-        end)
+        end
     end
-end)
+    return nearest
+end
 
--- 2. Logic Gom Quái (Bring Mob)
-RunService.Stepped:Connect(function()
-    pcall(function()
-        if getgenv().FarmConfig.Enabled and getgenv().FarmConfig.BringMob then
-            local char = LocalPlayer.Character
-            local rootPart = char and char:FindFirstChild("HumanoidRootPart")
-            if rootPart then
-                local enemies = Workspace:FindFirstChild("Enemies")
-                if enemies then
-                    for _, enemy in ipairs(enemies:GetChildren()) do
-                        local eRoot = enemy:FindFirstChild("HumanoidRootPart")
-                        local eHum = enemy:FindFirstChildOfClass("Humanoid")
-                        if eRoot and eHum and eHum.Health > 0 then
-                            if (eRoot.Position - rootPart.Position).Magnitude < 400 then
-                                eRoot.CFrame = rootPart.CFrame * CFrame.new(0, -4, -3)
-                                eHum.PlatformStand = true
+-- Vòng lặp Auto Farm cốt lõi (Ổn định không bay ngược lên trời)
+task.spawn(function()
+    while task.wait(0.1) do
+        pcall(function()
+            if getgenv().FarmConfig.Enabled then
+                local char = LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    local rootPart = char.HumanoidRootPart
+                    local targetMob = getNearestMob()
+                    
+                    if targetMob and targetMob:FindFirstChild("HumanoidRootPart") then
+                        local mobRoot = targetMob.HumanoidRootPart
+                        local mobHum = targetMob:FindFirstChildOfClass("Humanoid")
+                        
+                        -- Ghim vị trí đứng ngay trên đầu/trước mặt quái (Cố định trục Y không bị cộng dồn vô hạn)
+                        rootPart.CFrame = mobRoot.CFrame * CFrame.new(0, 5, 3)
+                        
+                        -- Tự động đánh quái
+                        if mobHum and mobHum.Health > 0 then
+                            local tool = char:FindFirstChildOfClass("Tool")
+                            if tool then
+                                tool:Activate()
+                            else
+                                -- Nếu chưa cầm vũ khí, tự động trang bị vũ khí đầu tiên trong balo
+                                local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
+                                if backpack then
+                                    for _, item in ipairs(backpack:GetChildren()) do
+                                        if item:IsA("Tool") and (item.ToolTip == "Melee" or item.ToolTip == "Sword" or item.ToolTip == "Blox Fruit") then
+                                            LocalPlayer.Character.Humanoid:EquipTool(item)
+                                            break
+                                        end
+                                    end
+                                end
                             end
                         end
                     end
-                end
-            end
-        end
-    end)
-end)
-
--- 3. Logic Farm vị trí an toàn trên đầu quái
-RunService.RenderStepped:Connect(function()
-    pcall(function()
-        if getgenv().FarmConfig.Enabled then
-            local char = LocalPlayer.Character
-            local rootPart = char and char:FindFirstChild("HumanoidRootPart")
-            if rootPart then
-                local enemies = Workspace:FindFirstChild("Enemies")
-                if enemies then
-                    for _, enemy in ipairs(enemies:GetChildren()) do
-                        local eRoot = enemy:FindFirstChild("HumanoidRootPart")
-                        local eHum = enemy:FindFirstChildOfClass("Humanoid")
-                        if eRoot and eHum and eHum.Health > 0 then
-                            rootPart.CFrame = eRoot.CFrame * CFrame.new(0, getgenv().FarmConfig.SafeHeight, getgenv().FarmConfig.SafeDistance)
-                            rootPart.Velocity = Vector3.new(0, 0, 0)
-                            break
-                        end
-                    end
-                end
-            end
-        end
-    end)
-end)
-
--- 4. Fast Attack vũ khí
-task.spawn(function()
-    while task.wait(0.04) do
-        pcall(function()
-            if getgenv().FarmConfig.Enabled and getgenv().FarmConfig.FastAttack then
-                local char = LocalPlayer.Character
-                local tool = char and char:FindFirstChildOfClass("Tool")
-                if tool then
-                    tool:Activate()
                 end
             end
         end)
