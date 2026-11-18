@@ -1,12 +1,12 @@
 -- =========================================================================
--- APEX HUB - MASTER MOBILE SCRIPT (FULL MODULE LOADER)
+-- APEX HUB - MASTER MOBILE SCRIPT (FULL MODULE LOADER & UI FIX)
 -- =========================================================================
 
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- Xóa UI cũ nếu có tránh bị chồng chéo
+-- Xóa UI cũ nếu có tránh bị trùng lặp
 if CoreGui:FindFirstChild("ApexHub_MobileUI") then
     CoreGui.ApexHub_MobileUI:Destroy()
 end
@@ -54,7 +54,7 @@ local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 8)
 UICorner.Parent = MainFrame
 
--- Top Bar
+-- Top Bar (Thanh Tiêu Đề)
 local TopBar = Instance.new("Frame")
 TopBar.Size = UDim2.new(1, 0, 0, 35)
 TopBar.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
@@ -66,16 +66,17 @@ TopCorner.CornerRadius = UDim.new(0, 8)
 TopCorner.Parent = TopBar
 
 local TitleLabel = Instance.new("TextLabel")
-TitleLabel.Size = UDim2.new(0, 300, 1, 0)
+TitleLabel.Size = UDim2.new(0, 250, 1, 0)
 TitleLabel.Position = UDim2.new(0, 10, 0, 0)
 TitleLabel.BackgroundTransparency = 1
 TitleLabel.TextColor3 = Color3.fromRGB(0, 255, 140)
 TitleLabel.TextSize = 13
 TitleLabel.Font = Enum.Font.GothamBold
-TitleLabel.Text = "⚡ APEX HUB | KIDHUB PRO MAX"
+TitleLabel.Text = "⚡ APEX HUB | KIDHUB PRO"
 TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 TitleLabel.Parent = TopBar
 
+-- Nút Đóng (X)
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 30, 0, 25)
 CloseBtn.Position = UDim2.new(1, -35, 0, 5)
@@ -93,6 +94,23 @@ CloseCorner.Parent = CloseBtn
 CloseBtn.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
+
+-- Nút Thu Nhỏ / Ẩn Giao Diện (-)
+local MinBtn = Instance.new("TextButton")
+MinBtn.Size = UDim2.new(0, 30, 0, 25)
+MinBtn.Position = UDim2.new(1, -70, 0, 5)
+MinBtn.BackgroundColor3 = Color3.fromRGB(200, 150, 40)
+MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinBtn.TextSize = 12
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.Text = "-"
+MinBtn.Parent = TopBar
+
+local MinCorner = Instance.new("UICorner")
+MinCorner.CornerRadius = UDim.new(0, 4)
+MinCorner.Parent = MinBtn
+
+local isMinimized = false
 
 -- Tab Menu Bar (Bên trái)
 local TabBar = Instance.new("ScrollingFrame")
@@ -121,6 +139,19 @@ local ContainerCorner = Instance.new("UICorner")
 ContainerCorner.CornerRadius = UDim.new(0, 6)
 ContainerCorner.Parent = Container
 
+MinBtn.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    TabBar.Visible = not isMinimized
+    Container.Visible = not isMinimized
+    if isMinimized then
+        MainFrame.Size = UDim2.new(0, 480, 0, 35)
+        MinBtn.Text = "+"
+    else
+        MainFrame.Size = UDim2.new(0, 480, 0, 320)
+        MinBtn.Text = "-"
+    end
+end)
+
 -- Danh sách 6 Tab
 local tabsData = {
     {"Main Farm", "Tab 1: Cày cấp, gom quái, đánh nhanh"},
@@ -128,7 +159,7 @@ local tabsData = {
     {"Teleport", "Tab 3: Dịch chuyển nhanh các đảo (Sea 1-3)"},
     {"Server Hop", "Tab 4: Săn server trăng tròn, Mirage, Kitsune"},
     {"Stats & Tools", "Tab 5: Quản lý chỉ số, hỗ trợ vật phẩm"},
-    {"Settings", "Tab 6: Tối ưu hóa, Anti-AFK"}
+    {"Settings", "Tab 6: Tối ưu hóa, thông tin hệ thống"}
 }
 
 local tabButtons = {}
@@ -229,7 +260,6 @@ end)
 -- TAB 2: RACE V4 & TRIAL
 local tab2 = tabPages[2]
 
--- Nút dịch chuyển đến Cửa Tốc (Temple of Time)
 local teleV4Btn = Instance.new("TextButton")
 teleV4Btn.Size = UDim2.new(1, 0, 0, 32)
 teleV4Btn.BackgroundColor3 = Color3.fromRGB(60, 45, 90)
@@ -247,7 +277,6 @@ teleV4Btn.MouseButton1Click:Connect(function()
     if RaceV4 then RaceV4.TeleportToTemple() end
 end)
 
--- Nút Auto Trial & Gạt Cần
 local trialToggle = Instance.new("TextButton")
 trialToggle.Size = UDim2.new(1, 0, 0, 32)
 trialToggle.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
@@ -275,14 +304,13 @@ trialToggle.MouseButton1Click:Connect(function()
     end
 end)
 
--- Ô nhập tên người chơi để Bật V4 cùng lúc (Không bật nếu khác tên)
 local partnerBox = Instance.new("TextBox")
 partnerBox.Size = UDim2.new(1, 0, 0, 32)
 partnerBox.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 partnerBox.TextColor3 = Color3.fromRGB(0, 255, 140)
 partnerBox.TextSize = 11
 partnerBox.Font = Enum.Font.GothamBold
-partnerBox.PlaceholderText = "Nhập tên người chơi bật chung (Hoặc gõ 'All')"
+partnerBox.PlaceholderText = "Nhập tên người chơi bật chung (Hoặc 'All')"
 partnerBox.Text = "All"
 partnerBox.Parent = tab2
 
@@ -297,7 +325,6 @@ partnerBox.FocusLost:Connect(function()
     end
 end)
 
--- Nút mua Gear
 local buyGearBtn = Instance.new("TextButton")
 buyGearBtn.Size = UDim2.new(1, 0, 0, 32)
 buyGearBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
@@ -366,17 +393,16 @@ hopBtn.MouseButton1Click:Connect(function()
 end)
 
 
--- TAB 6: SETTINGS (CÀI ĐẶT CHUNG)
+-- TAB 6: SETTINGS
 local tab6 = tabPages[6]
 local infoLabel = Instance.new("TextLabel")
-infoInfo = infoLabel
 infoLabel.Size = UDim2.new(1, 0, 0, 40)
 infoLabel.BackgroundTransparency = 1
 infoLabel.TextColor3 = Color3.fromRGB(0, 255, 140)
 infoLabel.TextSize = 11
 infoLabel.Font = Enum.Font.GothamBold
-infoLabel.Text = "Apex Hub v3.0 - Đã nạp đầy đủ 4 Module từ KidHub thành công!"
+infoLabel.Text = "Apex Hub v3.1 - Đã đồng bộ ổn định và sửa lỗi bay cao!"
 infoLabel.TextWrapped = true
 infoLabel.Parent = tab6
 
-print("[+] Apex Hub Mobile đã khởi chạy thành công toàn bộ hệ thống!")
+print("[+] Apex Hub Mobile đã khởi chạy thành công!")
